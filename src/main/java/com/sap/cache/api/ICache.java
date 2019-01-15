@@ -1,4 +1,4 @@
-package com.sap.cache;
+package com.sap.cache.api;
 
 public interface ICache {
 

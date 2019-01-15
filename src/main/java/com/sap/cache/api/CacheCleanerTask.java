@@ -1,5 +1,6 @@
-package com.sap.cache;
+package com.sap.cache.api;
 
+import com.sap.cache.notification.INotification;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.DelayQueue;
@@ -24,10 +25,16 @@ public class CacheCleanerTask implements Runnable {
             try {
                 CacheItem delayedCacheItem = delayQueue.take();
                 cache.remove(delayedCacheItem.getKey(), delayedCacheItem.getValue());
-                notification.notify(delayedCacheItem.getValue());
+                if (isNotificationEnabled()) {
+                    notification.notify(delayedCacheItem.getValue());
+                }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
         }
+    }
+
+    private boolean isNotificationEnabled() {
+        return notification != null;
     }
 }
