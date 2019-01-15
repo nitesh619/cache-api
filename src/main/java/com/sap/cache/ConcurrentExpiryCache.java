@@ -1,58 +1,57 @@
 package com.sap.cache;
 
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.DelayQueue;
+import java.util.concurrent.TimeUnit;
 import lombok.Getter;
 
 public class ConcurrentExpiryCache implements ICache {
 
     @Getter
-    private final ConcurrentHashMap<String, Object> cache =
-            new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Object> cache = new ConcurrentHashMap<>();
     @Getter
     private final DelayQueue<CacheItem> cleanerQueue = new DelayQueue<>();
+    @Getter
+    private CacheCleanerTask cacheCleanerTask = new CacheCleanerTask(cache, cleanerQueue);
+
     private long expiryDurationInMillis;
     private int capacity;
 
-    public ConcurrentExpiryCache(int capacity, long expiryTime) {
+    public ConcurrentExpiryCache(int capacity, long expiryTimeMillis) {
         this.capacity = capacity;
-        this.expiryDurationInMillis = expiryTime;
+        this.expiryDurationInMillis = expiryTimeMillis;
 
-        Runnable runnable = () -> {
-            while (!Thread.currentThread().isInterrupted()) {
-                try {
-                    CacheItem delayedCacheItem = cleanerQueue.take();
-                    cache.remove(delayedCacheItem.getKey(), delayedCacheItem.getValue());
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-            }
-        };
-        Thread cleaner = new Thread(runnable);
-        cleaner.setDaemon(true);
-        cleaner.start();
+        Thread expirationCollector = new Thread(cacheCleanerTask);
+        expirationCollector.setDaemon(true);
+        expirationCollector.start();
+    }
+
+    public ConcurrentExpiryCache(int capacity, long expiryTime, TimeUnit timeUnit) {
+        this(capacity, timeUnit.toMillis(expiryTime));
     }
 
     public void add(final String key, final Object value) {
-        //size full
         if (isCacheFull()) {
-            System.out.println("Cache full, please wait for expiry period.");
+            System.out.println("Cache full, please wait for the expiry period.");
             return;
         }
-        if (key == null) {
+        if (Objects.isNull(key)) {
             return;
         }
-        if (value == null) {
-            cache.remove(key);
-        } else {
-            long expiryTime = System.currentTimeMillis() + expiryDurationInMillis;
-            cache.put(key, value);
-            cleanerQueue.put(new CacheItem(key, value, expiryTime));
-        }
+        cache.put(key, value);
+        addToDelayQueue(key, value);
+    }
+
+    private void addToDelayQueue(final String key, final Object value) {
+        long expiryTime = System.currentTimeMillis() + expiryDurationInMillis;
+        CacheItem cacheItem = new CacheItem(key, value, expiryTime);
+        cleanerQueue.remove(cacheItem);
+        cleanerQueue.put(cacheItem);
     }
 
     private boolean isCacheFull() {
-        return cache.size() == capacity;
+        return size() == capacity;
     }
 
     public void remove(final String key) {
@@ -60,16 +59,15 @@ public class ConcurrentExpiryCache implements ICache {
     }
 
     public Object get(final String key) {
-        Object val = cache.get(key);
-        if (val != null) {
-            long expiryTime = System.currentTimeMillis() + expiryDurationInMillis;
-            CacheItem cacheItem = new CacheItem(key, val, expiryTime);
-            if (cleanerQueue.remove(cacheItem)) {
-                cleanerQueue.add(cacheItem);
-            }
-            return cacheItem.getValue();
+        if (Objects.isNull(key)) {
+            return null;
         }
-        return val;
+        Object value = cache.get(key);
+        if (value != null) {
+            addToDelayQueue(key, value);
+            return value;
+        }
+        return null;
     }
 
     public void clear() {

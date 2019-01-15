@@ -13,17 +13,17 @@ import lombok.ToString;
 @ToString
 public class CacheItem implements Delayed {
 
+    private String key;
+    private Object value;
     @EqualsAndHashCode.Exclude
     @ToString.Exclude
     private final long expiryTime;
-    private String key;
-    private Object value;
 
     public long getDelay(final TimeUnit unit) {
         return unit.convert(expiryTime - System.currentTimeMillis(), TimeUnit.MILLISECONDS);
     }
 
-    public int compareTo(final Delayed o) {
-        return Long.valueOf(expiryTime - ((CacheItem) o).expiryTime).intValue();
+    public int compareTo(final Delayed item) {
+        return Long.valueOf(expiryTime - ((CacheItem) item).expiryTime).intValue();
     }
 }

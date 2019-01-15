@@ -3,6 +3,8 @@ package com.sap.cache;
 public class EntryPoint {
 
     public static void main(String[] args) throws InterruptedException {
+
+
         ConcurrentExpiryCache cache = new ConcurrentExpiryCache(5, 5000);
 
         cache.add("1", "batman");
@@ -22,7 +24,6 @@ public class EntryPoint {
             while (true) {
 
                 System.out.println(cache.getCache());
-                System.out.println(cache.getCleanerQueue());
                 try {
                     Thread.sleep(1000);
                 } catch (InterruptedException e) {
