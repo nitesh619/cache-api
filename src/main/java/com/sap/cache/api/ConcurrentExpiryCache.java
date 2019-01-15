@@ -27,14 +27,6 @@ public class ConcurrentExpiryCache implements ICache {
         expirationCollector.start();
     }
 
-//    public ConcurrentExpiryCache(int capacity, long expiryTime, TimeUnit timeUnit, INotification notifier) {
-//        this(capacity, timeUnit.toMillis(expiryTime), notifier);
-//    }
-//
-//    public ConcurrentExpiryCache(int capacity, long expiryTime, TimeUnit timeUnit) {
-//        this(capacity, expiryTime, timeUnit, null);
-//    }
-
     public static CacheBuilder builder() {
         return new CacheBuilder();
     }
