@@ -36,8 +36,7 @@ public class EntryPoint {
                 System.out.println(cache.showCache());
                 try {
                     Thread.sleep(SLEEP_MILLIS);
-                } catch (InterruptedException ignore) {
-                }
+                } catch (InterruptedException ignore) { }
                 cache.get("3");
             }
         }).start();
