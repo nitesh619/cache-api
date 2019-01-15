@@ -3,10 +3,11 @@ package com.sap.cache;
 public class EntryPoint {
 
     public static void main(String[] args) throws InterruptedException {
-
-
-        ConcurrentExpiryCache cache = new ConcurrentExpiryCache(5, 5000);
-
+        INotification iNotification = value -> {
+            System.out.println("Evicted " + value + " from the cache.");
+        };
+        ConcurrentExpiryCache cache =
+                new ConcurrentExpiryCache(5, 5000, iNotification);
         cache.add("1", "batman");
         Thread.sleep(1000);
         cache.add("2", "ironman");
@@ -32,6 +33,7 @@ public class EntryPoint {
                 cache.get("3");
             }
         }).start();
+
     }
 
 }

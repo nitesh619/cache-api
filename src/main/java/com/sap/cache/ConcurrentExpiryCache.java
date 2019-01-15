@@ -11,24 +11,25 @@ public class ConcurrentExpiryCache implements ICache {
     @Getter
     private final ConcurrentHashMap<String, Object> cache = new ConcurrentHashMap<>();
     @Getter
-    private final DelayQueue<CacheItem> cleanerQueue = new DelayQueue<>();
+    private final DelayQueue<CacheItem> delayQueue = new DelayQueue<>();
     @Getter
-    private CacheCleanerTask cacheCleanerTask = new CacheCleanerTask(cache, cleanerQueue);
+    private Runnable cacheCleanerTask;
 
     private long expiryDurationInMillis;
     private int capacity;
 
-    public ConcurrentExpiryCache(int capacity, long expiryTimeMillis) {
+    public ConcurrentExpiryCache(int capacity, long expiryTimeMillis, INotification notifier) {
         this.capacity = capacity;
         this.expiryDurationInMillis = expiryTimeMillis;
+        cacheCleanerTask = new CacheCleanerTask(cache, delayQueue, notifier);
 
         Thread expirationCollector = new Thread(cacheCleanerTask);
         expirationCollector.setDaemon(true);
         expirationCollector.start();
     }
 
-    public ConcurrentExpiryCache(int capacity, long expiryTime, TimeUnit timeUnit) {
-        this(capacity, timeUnit.toMillis(expiryTime));
+    public ConcurrentExpiryCache(int capacity, long expiryTime, TimeUnit timeUnit, INotification notifier) {
+        this(capacity, timeUnit.toMillis(expiryTime), notifier);
     }
 
     public void add(final String key, final Object value) {
@@ -46,8 +47,8 @@ public class ConcurrentExpiryCache implements ICache {
     private void addToDelayQueue(final String key, final Object value) {
         long expiryTime = System.currentTimeMillis() + expiryDurationInMillis;
         CacheItem cacheItem = new CacheItem(key, value, expiryTime);
-        cleanerQueue.remove(cacheItem);
-        cleanerQueue.put(cacheItem);
+        delayQueue.remove(cacheItem);
+        delayQueue.put(cacheItem);
     }
 
     private boolean isCacheFull() {
